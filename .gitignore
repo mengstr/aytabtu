@@ -12,7 +12,7 @@ eagle.epf
 *.s#?
 *.b#?
 *.l#?
-
+*.pro
 
 #
 # CAM files
