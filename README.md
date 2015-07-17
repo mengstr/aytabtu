@@ -15,8 +15,13 @@ I've used, collected, gleaned, stolen, borrowed and been inspired by the informa
 Donut pcb layout creator - [code.google.com/p/diy-layout-creator/](https://code.google.com/p/diy-layout-creator/)  
 Ring counter - [vk2zay.net/article/201](http://www.vk2zay.net/article/201)  
 Asymetric multivibrator - [4qdtec.com/mvibs.html](http://www.4qdtec.com/mvibs.html)  
-CPU design - [eecg.toronto.edu/~moshovos/ECE243-07/...](http://www.eecg.toronto.edu/~moshovos/ECE243-07/l19-implemenation-single-cycle.html)  
-Binary incrementer - [letslearncomputing.blogspot.com/2013/....](http://letslearncomputing.blogspot.com/2013/03/digital-logic-4-bit-binary-incrementer.html)
+Single cycle CPU - [eecg.toronto.edu/~moshovos/ECE243-07/...](http://www.eecg.toronto.edu/~moshovos/ECE243-07/l19-implemenation-single-cycle.html)  
+Binary incrementer - [letslearncomputing.blogspot.com/2013/....](http://letslearncomputing.blogspot.com/2013/03/digital-logic-4-bit-binary-incrementer.html)  
+12/8bit cpu - [usti8bit.blogspot.com](usti8bit.blogspot.com/2015_03_01_archive.html)  
+8bit ttl cpu - [digitarworld.uw.hu/ttlcpu.html](http://digitarworld.uw.hu/ttlcpu.html)  
+ASAP3 Computer - [pong74ls.blogspot.com/...](http://pong74ls.blogspot.com/2013/11/asap-3-almost-simple-as-possible.html)  
+Tiny Tim - [northdownfarm.co.uk/rory/tim/tinytim.htm](http://www.northdownfarm.co.uk/rory/tim/tinytim.htm) 
+
 
 ## Links to my own resources
 Link to Google Sheets for a [TX faker generator](https://docs.google.com/spreadsheets/d/1nLxUwCidM7_CYKXSP2XA_T4spadFk9zQSKAtxVXUBSM/edit?usp=sharing).
