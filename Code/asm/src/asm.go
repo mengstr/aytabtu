@@ -82,6 +82,11 @@ var opcodes = map[string]opcode{
 	"RET":     {base: 0x624, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1   1   0     0   0   1   0     0   1   0   0
 	"CLRC":    {base: 0x626, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1   1   0     0   0   1   0     0   1   1   0
 	"SETC":    {base: 0x627, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1   1   0     0   0   1   0     0   1   1   1
+	"LDPML":   {base: 0x628, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1	  1	  0	    0	0	1	0	  1	  0   0	  0
+	"LDPMH":   {base: 0x629, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1	  1	  0	    0	0	1	0	  1	  0   0	  1
+	"STPML":   {base: 0x62A, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1	  1	  0	    0	0	1	0	  1	  0   1	  0
+	"STPMH":   {base: 0x62B, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1	  1	  0	    0	0	1	0	  1	  0   1	  1
+
 }
 
 var debug int = 1
