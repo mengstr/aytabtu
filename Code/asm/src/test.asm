@@ -29,6 +29,8 @@ LABEL2
 	LDAI	HEX65
 	LDAI	BIN254
 
+	LDAI	DEFLATER
+
 	; Now try a basic variant of all currently allowed opcodes
 	HALT	   		; No params
 	NOP	    		; No params
@@ -71,6 +73,9 @@ LABEL2
 	LDPMH	  		; No params
 	STPML	  		; No params
 	STPMH	  		; No params
+	
+	.DEF	DEFLATER	$ff
+
 END
 
 

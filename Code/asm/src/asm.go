@@ -101,16 +101,16 @@ type Label struct {
 }
 
 var labels = make(map[string]Label)
+var pass int = 1
 var pc int = 0
-var lineNo int = 0
 var lineSource string = ""
+var lineNo int = 0
 
 //
-//
+// Prints an error message explaining the problem and then exits the program
 //
 func dieError(msg string, extra string) {
 	fmt.Printf("%04x: $??? %%???????????   %s \n", pc, lineSource)
-
 	fmt.Printf("ERROR: %s at line %d: %s\n", msg, lineNo, extra)
 	os.Exit(1)
 }
@@ -129,9 +129,9 @@ func addLabel(name string, pc int, labelType int) bool {
 		dieError("Invalid label name", name)
 	}
 
-	// Don't redefine a label
+	// If in pass 1 don't allow redefinition of a label
 	_, exists := labels[name]
-	if exists {
+	if exists && pass == 1 {
 		dieError("Redefinition of label", name)
 	}
 
@@ -193,6 +193,10 @@ func convertValue(arg string, minVal int, maxVal int) (int, bool) {
 	}
 
 	tmpval, exists := labels[arg]
+	if !exists && pass == 2 {
+		dieError("Symbol not found", arg)
+	}
+
 	val := tmpval.address
 	if int(val) < minVal {
 		dieError("Value too small", arg)
@@ -270,14 +274,15 @@ func showSymbolTable() {
 //
 //
 //
-func main() {
-	file, err := os.Open("test.asm")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()
+func processFile(f *os.File) {
+	fmt.Printf("Processing pass %d\n", pass)
+	pc = 0
+	lineNo = 0
 
-	scanner := bufio.NewScanner(file)
+	f.Seek(0, 0)
+
+	scanner := bufio.NewScanner(f)
+
 	for scanner.Scan() {
 		lineSource = scanner.Text()
 		// Add some comments at end of line so we don't run out of tokens to process, it's an ugly patch
@@ -373,10 +378,29 @@ func main() {
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
-		fmt.Printf("%04x: $%03x %%%011b   %s \n", pc, op, op, lineSource)
+		if pass == 2 {
+			fmt.Printf("%04x: $%03x %%%011b   %s \n", pc, op, op, lineSource)
+		}
 
 		pc++
 	}
+
+}
+
+//
+//
+//
+func main() {
+	f, err := os.Open("test.asm")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer f.Close()
+
+	pass = 1
+	processFile(f)
+	pass = 2
+	processFile(f)
 
 	showSymbolTable()
 
