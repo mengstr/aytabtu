@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -89,15 +90,35 @@ var opcodes = map[string]opcode{
 
 }
 
-var debug int = 1
-var labels = make(map[string]int)
+const (
+	LABEL_lbl = iota // Standard label from code
+	LABEL_def = iota // Label created by .DEF
+)
+
+type Label struct {
+	address   int
+	labelType int
+}
+
+var labels = make(map[string]Label)
 var pc int = 0
 var lineNo int = 0
+var lineSource string = ""
 
 //
 //
 //
-func addLabel(name string, pc int) bool {
+func dieError(msg string, extra string) {
+	fmt.Printf("%04x: $??? %%???????????   %s \n", pc, lineSource)
+
+	fmt.Printf("ERROR: %s at line %d: %s\n", msg, lineNo, extra)
+	os.Exit(1)
+}
+
+//
+//
+//
+func addLabel(name string, pc int, labelType int) bool {
 	if string(name[0]) == ";" {
 		return false
 	}
@@ -105,36 +126,38 @@ func addLabel(name string, pc int) bool {
 	// label must start with A..Z and then only A..Z0..9
 	ok, _ := regexp.MatchString("^[A-Z]+[A-Z0-9]*$", name)
 	if !ok {
-		fmt.Printf("Invalid label at line %d: %s\n", lineNo, name)
-		os.Exit(1)
+		dieError("Invalid label name", name)
 	}
 
 	// Don't redefine a label
 	_, exists := labels[name]
 	if exists {
-		fmt.Printf("Redefinition of label at line %d: %s\n", lineNo, name)
-		os.Exit(1)
+		dieError("Redefinition of label", name)
 	}
 
-	labels[name] = pc
+	labels[name] = Label{pc, labelType}
 	return true
 }
 
 //
 //
 //
-func convertValue(arg string) (int, bool) {
+func convertValue(arg string, minVal int, maxVal int) (int, bool) {
 	if arg == "" {
-		fmt.Printf("Missing value at line %d\n", lineNo)
-		os.Exit(1)
+		dieError("Missing value", "")
 	}
 
 	// Is decimal value?
 	if string(arg[0]) >= "0" && string(arg[0]) <= "9" {
 		if val, err := strconv.ParseInt(arg, 10, 64); err != nil {
-			fmt.Printf("Invalid decimal value at line %d: %s\n", lineNo, arg)
-			os.Exit(1)
+			dieError("Invalid decimal value", arg)
 		} else {
+			if int(val) < minVal {
+				dieError("Value too small", arg)
+			}
+			if int(val) > maxVal {
+				dieError("Value too large", arg)
+			}
 			return int(val), true
 		}
 	}
@@ -142,9 +165,14 @@ func convertValue(arg string) (int, bool) {
 	// Is hex value?
 	if string(arg[0]) == "$" {
 		if val, err := strconv.ParseInt(arg[1:], 16, 64); err != nil {
-			fmt.Printf("Invalid hex value at line %d: %s\n", lineNo, arg)
-			os.Exit(1)
+			dieError("Invalid hex value", arg)
 		} else {
+			if int(val) < minVal {
+				dieError("Value too small", arg)
+			}
+			if int(val) > maxVal {
+				dieError("Value too large", arg)
+			}
 			return int(val), true
 		}
 	}
@@ -152,50 +180,91 @@ func convertValue(arg string) (int, bool) {
 	// Is binary value?
 	if string(arg[0]) == "%" {
 		if val, err := strconv.ParseInt(arg[1:], 2, 64); err != nil {
-			fmt.Printf("Invalid binary value at line %d: %s\n", lineNo, arg)
-			os.Exit(1)
+			dieError("Invalid binary value", arg)
 		} else {
+			if int(val) < minVal {
+				dieError("Value too small", arg)
+			}
+			if int(val) > maxVal {
+				dieError("Value too large", arg)
+			}
 			return int(val), true
 		}
 	}
 
-	val, exists := labels[arg]
+	tmpval, exists := labels[arg]
+	val := tmpval.address
+	if int(val) < minVal {
+		dieError("Value too small", arg)
+	}
+	if int(val) > maxVal {
+		dieError("Value too large", arg)
+	}
 
 	return val, exists
 }
 
 //
+// Returns true if .END directive found
 //
-//
-func handleDirectives(tokens []string, tp int) {
+func handleDirectives(tokens []string, tp int) bool {
+	if tokens[tp] == ".END" {
+		return true
+	}
+
 	if tokens[tp] == ".DEF" {
-		val, ok := convertValue(tokens[tp+2])
+		val, ok := convertValue(tokens[tp+2], 0, 65535)
 		if !ok {
-			fmt.Printf("Invalid value at line %d: %s\n", lineNo, tokens[tp+2])
-			os.Exit(1)
+			dieError("Invalid value", tokens[tp+2])
 		}
-		_ = addLabel(tokens[tp+1], val)
-		if debug > 0 {
-			fmt.Printf("%s defined as %04x\n", tokens[tp+1], int(val))
-		}
-		return
+		_ = addLabel(tokens[tp+1], val, LABEL_def)
+		return false
 	}
 
 	if tokens[tp] == ".ORG" {
-		val, ok := convertValue(tokens[tp+1])
+		val, ok := convertValue(tokens[tp+1], 0, 65535)
 		if !ok {
-			fmt.Printf("Invalid value at line %d: %s\n", lineNo, tokens[tp+1])
-			os.Exit(1)
+			dieError("Invalid value", tokens[tp+1])
 		}
 		pc = val
-		if debug > 0 {
-			fmt.Printf("PC set to %04x\n", pc)
-		}
-		return
+		return false
 	}
-	fmt.Printf("Invalid directive at line %d: %s\n", lineNo, tokens[tp])
-	os.Exit(1)
+	dieError("Invalid directive", tokens[tp])
+	return false
+}
 
+//
+// Print the symbol table in sorted order grouped in
+// .defined values and "in-code" labels
+//
+func showSymbolTable() {
+	// Sort the keys into a new array
+	sortedLabels := make([]string, 0, len(labels))
+	for k := range labels {
+		sortedLabels = append(sortedLabels, k)
+	}
+	sort.Strings(sortedLabels)
+
+	// Print the labels map indexed by the sorted array
+	fmt.Println()
+	fmt.Println("Symbol Table")
+	fmt.Println("============")
+
+	// Start with the .defined values
+	for _, k := range sortedLabels {
+		if labels[k].labelType == LABEL_def {
+			fmt.Printf(".DEF %-16s $%04x %5d\n", k, labels[k].address, labels[k].address)
+		}
+	}
+
+	fmt.Println()
+
+	// Then print the regular label defined for jumps and branches
+	for _, k := range sortedLabels {
+		if labels[k].labelType == LABEL_lbl {
+			fmt.Printf("     %-16s $%04x\n", k, labels[k].address)
+		}
+	}
 }
 
 //
@@ -210,10 +279,10 @@ func main() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		rawline := scanner.Text()
+		lineSource = scanner.Text()
 		// Add some comments at end of line so we don't run out of tokens to process, it's an ugly patch
 		// but it simplifies the code
-		line := rawline + " ; ; ; ;"
+		line := lineSource + " ; ; ; ;"
 		lineNo++
 
 		// Must check for a label starting in the first column before tokenizing the line
@@ -222,24 +291,26 @@ func main() {
 
 		tokens := strings.Fields(line)
 		tp := 0
-		if debug > 2 {
-			fmt.Printf("Label is %t Fields are: %q\n", haslabel, tokens)
-		}
 
-		// Process the label if we had one
+		// Add the label (if we have one) into the symbol table
 		if haslabel {
-			if addLabel(tokens[tp], pc) {
+			if addLabel(tokens[tp], pc, LABEL_lbl) {
+				// And continue processing the remainder of the line
 				tp++
 			}
 		}
 
 		// Check for and process compiler directives starting with a dot
 		if string(tokens[tp][0]) == "." {
-			handleDirectives(tokens, tp)
+			if handleDirectives(tokens, tp) {
+				// .END found, so exit the loop
+				break
+			}
+			// The command was processed, go fetch the next line
 			continue
 		}
 
-		// Check if this is a comment
+		// If this is a comment go fetch the next line
 		if string(tokens[tp][0]) == ";" {
 			continue
 		}
@@ -247,49 +318,32 @@ func main() {
 		// By now the current token should be an opcode
 		_, exists := opcodes[tokens[tp]]
 		if !exists {
-			fmt.Printf("Invalid opcode at line %d: %s\n", lineNo, tokens[tp])
-			os.Exit(1)
+			dieError("Invalid opcode", tokens[tp])
 		}
 		// Start by retreiving the base opcode value
 		op := opcodes[tokens[tp]].base
 		arg1val := 0
 
 		// Check for different requred types of the first argument, retreive the argument value
-		// and merge it into the base opcode value
+		// and merge it into the opcode base value
 
 		if opcodes[tokens[tp]].arg1 == P_va8 {
-			arg1val, _ := convertValue(tokens[tp+1])
-			if arg1val < 0 || arg1val > 255 {
-				fmt.Printf("Invalid value at line %d: %s\n", lineNo, tokens[tp+1])
-				os.Exit(1)
-			}
+			arg1val, _ := convertValue(tokens[tp+1], 0, 255)
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
 		if opcodes[tokens[tp]].arg1 == P_mem {
-			arg1val, _ := convertValue(tokens[tp+1])
-			if arg1val < 0 || arg1val > 255 {
-				fmt.Printf("Invalid memory address at line %d: %s\n", lineNo, tokens[tp+1])
-				os.Exit(1)
-			}
+			arg1val, _ := convertValue(tokens[tp+1], 0, 255)
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
 		if opcodes[tokens[tp]].arg1 == P_bit {
-			arg1val, _ := convertValue(tokens[tp+1])
-			if arg1val < 0 || arg1val > 7 {
-				fmt.Printf("Invalid bit value at line %d: %s\n", lineNo, tokens[tp+1])
-				os.Exit(1)
-			}
+			arg1val, _ := convertValue(tokens[tp+1], 0, 7)
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
 		if opcodes[tokens[tp]].arg1 == P_io {
-			arg1val, _ := convertValue(tokens[tp+1])
-			if arg1val < 0 || arg1val > 15 {
-				fmt.Printf("Invalid io-port %d: %s\n", lineNo, tokens[tp+1])
-				os.Exit(1)
-			}
+			arg1val, _ := convertValue(tokens[tp+1], 0, 15)
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
@@ -313,15 +367,17 @@ func main() {
 			case "JL":
 				arg1val = 7
 			default:
-				fmt.Printf("Invalid register name at line %d: %s\n", lineNo, tokens[tp+1])
+				dieError("Invalid register name", tokens[tp+1])
 				os.Exit(1)
 			}
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
 		}
 
-		fmt.Printf("%04x: $%03x %%%011b   %s \n", pc, op, op, rawline)
+		fmt.Printf("%04x: $%03x %%%011b   %s \n", pc, op, op, lineSource)
 
 		pc++
 	}
+
+	showSymbolTable()
 
 }
