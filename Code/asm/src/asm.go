@@ -73,7 +73,7 @@ var opcodes = map[string]opcode{
 	"LSHIFTC": {base: 0x570, arg1: P_reg, arg1pos: 0, arg2: P_none, arg2pos: 0},  //  1   0   1     0   1   1   1     0   r2  r1  r0
 	"RSHIFTC": {base: 0x578, arg1: P_reg, arg1pos: 0, arg2: P_none, arg2pos: 0},  //  1   0   1     0   1   1   1     1   r2  r1  r0
 	"MOVE":    {base: 0x580, arg1: P_reg, arg1pos: 3, arg2: P_reg, arg2pos: 0},   //  1   0   1     1   0   rs2 rs1   rs0 rd2 rd1 rd0
-	"TEST":    {base: 0x580, arg1: P_reg, arg1pos: 3, arg2: P_bit, arg2pos: 0},   //  1   0   1     1   1   b2  b1    b0  r2  r1  r0
+	"TEST":    {base: 0x5C0, arg1: P_reg, arg1pos: 3, arg2: P_bit, arg2pos: 0},   //  1   0   1     1   1   b2  b1    b0  r2  r1  r0
 	"PEEK":    {base: 0x600, arg1: P_io, arg1pos: 0, arg2: P_none, arg2pos: 0},   //  1   1   0     0   0   0   0     p3  p2  p1  p0
 	"POKE":    {base: 0x610, arg1: P_io, arg1pos: 0, arg2: P_none, arg2pos: 0},   //  1   1   0     0   0   0   1     p3  p2  p1  p0
 	"LDAXY":   {base: 0x620, arg1: P_none, arg1pos: 0, arg2: P_none, arg2pos: 0}, //  1   1   0     0   0   1   0     0   0   0   0
