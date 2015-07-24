@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/nsf/termbox-go"
 	"math/rand"
+	"net"
 	"os"
 	"time"
 )
@@ -45,6 +46,12 @@ F8: pro pro pro pro pro pro pro pro   Dat 78: da da da da da da da da  Out F: 00
 
 
 */
+
+const (
+	CONN_HOST = "localhost"
+	CONN_PORT = "8080"
+	CONN_TYPE = "tcp"
+)
 
 const (
 	P_none = iota // Not allowed
@@ -499,9 +506,65 @@ func executeOneOp() {
 }
 
 //
+// Read incomming data from the tcp connection and send them to the channel for
+// consumption in the main loop
+//
+func tcpConn(theChannel chan uint, conn net.Conn) {
+	// Turn on character-by-character mode at the client,
+	// and turn off echo as well
+	conn.Write([]byte("\377\373\003\n"))    // send IAC WILL SUPPRESS-GOAHEAD
+	conn.Write([]byte("\377\375\003\n"))    // send IAC DO SUPPRESS-GO-AHEAD
+	conn.Write([]byte("\377\373\001\n"))    // send IAC WILL SUPPRESS-ECHO
+	conn.Write([]byte("\377\375\001\n"))    // send IAC DO SUPPRESS-ECHO
+	conn.Write([]byte("AYTABTU ready\r\n")) // Tell telnet user that we're good to go
+
+	for {
+		buf := make([]byte, 16)
+		_, _ = conn.Read(buf)
+		theChannel <- uint(buf[0])
+	}
+}
+
+//
+//
+//
+func tcpListener(theChannel chan uint) {
+	// Start listeng on TCP port
+	tcp, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	if err != nil {
+		fmt.Println("Error listening on port:", err.Error())
+		os.Exit(1)
+	}
+	defer tcp.Close()
+	for {
+		tcpconn, err := tcp.Accept()
+		if err != nil {
+			fmt.Println("Error accepting connection: ", err.Error())
+			os.Exit(1)
+		}
+		// Handle connections in a new goroutine.
+		go tcpConn(theChannel, tcpconn)
+	}
+}
+
+//
+// Continusly poll for keyboard events and post them to the channel for
+// consumtion in the main loop
+//
+func keyboardPoller(c chan termbox.Event) {
+	for {
+		c <- termbox.PollEvent()
+	}
+}
+
+//
 //
 //
 func main() {
+	// Start listening on TCP for UART simulator
+	uartChannel := make(chan uint)
+	go tcpListener(uartChannel)
+
 	// Initialize termbox library
 	err := termbox.Init()
 	if err != nil {
@@ -518,25 +581,37 @@ func main() {
 	}
 	termbox.SetOutputMode(termbox.OutputNormal)
 
+	// Run the polling of termbox key events inside a goroutine and
+	// send them over a channel
+	keyboardChannel := make(chan termbox.Event)
+	go keyboardPoller(keyboardChannel)
+
 	initCpu()
 	redrawCpu()
 	termbox.Flush()
 	exit := false
 	for !exit {
-		switch ev := termbox.PollEvent(); ev.Type {
-		case termbox.EventKey:
-			if string(ev.Ch) == "s" {
-				executeOneOp()
-				redrawCpu()
-				termbox.Flush()
-			}
-			if ev.Key == termbox.KeyCtrlC {
-				exit = true
-			}
-			if ev.Key == termbox.KeyEnter {
-				initCpu()
-				redrawCpu()
-				termbox.Flush()
+		select {
+		case rxData := <-uartChannel:
+			cpu.in[15] = rxData
+			redrawCpu()
+			termbox.Flush()
+		case ev := <-keyboardChannel:
+			switch ev.Type {
+			case termbox.EventKey:
+				if string(ev.Ch) == "s" {
+					executeOneOp()
+					redrawCpu()
+					termbox.Flush()
+				}
+				if ev.Key == termbox.KeyCtrlC {
+					exit = true
+				}
+				if ev.Key == termbox.KeyEnter {
+					initCpu()
+					redrawCpu()
+					termbox.Flush()
+				}
 			}
 
 		}
