@@ -3,46 +3,54 @@ package main
 import (
 	"fmt"
 	"github.com/nsf/termbox-go"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"os"
+	"strconv"
+	"strings"
 	"time"
 )
 
 /*
 
-00: pro pro pro pro pro pro pro pro   Reg A : 00 - 0000 0000           In 0 : 00 - 0000 0000
-08: pro pro pro pro pro pro pro pro   Reg B : 00 - 0000 0000           In 1 : 00 - 0000 0000
-10: pro pro pro pro pro pro pro pro   Reg C : 00 - 0000 0000           In 2 : 00 - 0000 0000
-18: pro pro pro pro pro pro pro pro   Reg D : 00 - 0000 0000           In 3 : 00 - 0000 0000
-20: pro pro pro pro pro pro pro pro   Reg X : 00 - 0000 0000           In 4 : 00 - 0000 0000
-28: pro pro pro pro pro pro pro pro   Reg Y : 00 - 0000 0000           In 5 : 00 - 0000 0000
-30: pro pro pro pro pro pro pro pro   Reg JH: 00 - 0000 0000           In 6 : 00 - 0000 0000
-38: pro pro pro pro pro pro pro pro   Reg JL: 00 - 0000 0000           In 7 : 00 - 0000 0000
-40: pro pro pro pro pro pro pro pro                                    In 8 : 00 - 0000 0000
-48: pro pro pro pro pro pro pro pro   PC    : 0000                     In 9 : 00 - 0000 0000
-50: pro pro pro pro pro pro pro pro   PChold: 0000                     In A : 00 - 0000 0000
-58: pro pro pro pro pro pro pro pro   Flag C: 0                        In B : 00 - 0000 0000
-60: pro pro pro pro pro pro pro pro   Flag Z: 0                        In C : 00 - 0000 0000
-68: pro pro pro pro pro pro pro pro   Cycles: 000000000                In D : 00 - 0000 0000
-70: pro pro pro pro pro pro pro pro                                    In E : 00 - 0000 0000
-78: pro pro pro pro pro pro pro pro                                    In F : 00 - 0000 0000
-80: pro pro pro pro pro pro pro pro   Dat 00: da da da da da da da da  Out 0: 00 - 0000 0000
-88: pro pro pro pro pro pro pro pro   Dat 08: da da da da da da da da  Out 1: 00 - 0000 0000
-90: pro pro pro pro pro pro pro pro   Dat 10: da da da da da da da da  Out 2: 00 - 0000 0000
-98: pro pro pro pro pro pro pro pro   Dat 18: da da da da da da da da  Out 3: 00 - 0000 0000
-A0: pro pro pro pro pro pro pro pro   Dat 20: da da da da da da da da  Out 4: 00 - 0000 0000
-A8: pro pro pro pro pro pro pro pro   Dat 28: da da da da da da da da  Out 5: 00 - 0000 0000
-B0: pro pro pro pro pro pro pro pro   Dat 30: da da da da da da da da  Out 6: 00 - 0000 0000
-B8: pro pro pro pro pro pro pro pro   Dat 38: da da da da da da da da  Out 7: 00 - 0000 0000
-C0: pro pro pro pro pro pro pro pro   Dat 40: da da da da da da da da  Out 8: 00 - 0000 0000
-C8: pro pro pro pro pro pro pro pro   Dat 48: da da da da da da da da  Out 9: 00 - 0000 0000
-D0: pro pro pro pro pro pro pro pro   Dat 50: da da da da da da da da  Out A: 00 - 0000 0000
-D8: pro pro pro pro pro pro pro pro   Dat 58: da da da da da da da da  Out B: 00 - 0000 0000
-E0: pro pro pro pro pro pro pro pro   Dat 60: da da da da da da da da  Out C: 00 - 0000 0000
-E8: pro pro pro pro pro pro pro pro   Dat 68: da da da da da da da da  Out D: 00 - 0000 0000
-F0: pro pro pro pro pro pro pro pro   Dat 70: da da da da da da da da  Out E: 00 - 0000 0000
-F8: pro pro pro pro pro pro pro pro   Dat 78: da da da da da da da da  Out F: 00 - 0000 0000
+	012345678901234567890123456789012345678901234567890123456789012345678901234567890123456789
+
+	 PROGRAM MEMORY                         REGISTERS                      I/O INPUTS
+0	00: 000 000 000 000 000 000 000 000     A: 00 - 00000000              In  0: 00 - 00000000
+1	08: 000 000 000 000 000 000 000 000     B: 00 - 00000000              In  1: 00 - 00000000
+2	10: 000 000 000 000 000 000 000 000     C: 00 - 00000000              In  2: 00 - 00000000
+3	18: 000 000 000 000 000 000 000 000     D: 00 - 00000000              In  3: 00 - 00000000
+4	20: 000 000 000 000 000 000 000 000     X: 00 - 00000000              In  4: 00 - 00000000
+5	28: 000 000 000 000 000 000 000 000     Y: 00 - 00000000              In  5: 00 - 00000000
+6	30: 000 000 000 000 000 000 000 000    JH: 00 - 00000000              In  6: 00 - 00000000
+7	38: 000 000 000 000 000 000 000 000    JL: 00 - 00000000              In  7: 00 - 00000000
+8	40: 000 000 000 000 000 000 000 000                                   In  8: 00 - 00000000
+9	48: 000 000 000 000 000 000 000 000     CPU INTERNAL                  In  9: 00 - 00000000
+0	50: 000 000 000 000 000 000 000 000    PC    : 0000                   In  A: 00 - 00000000
+1	58: 000 000 000 000 000 000 000 000    PChold: 0000                   In  B: 00 - 00000000
+2	60: 000 000 000 000 000 000 000 000    Flag C: false                  In  C: 00 - 00000000
+3	68: 000 000 000 000 000 000 000 000    Flag Z: true                   In  D: 00 - 00000000
+4	70: 000 000 000 000 000 000 000 000    Cycles: 0                      In  E: 00 - 00000000
+5	78: 000 000 000 000 000 000 000 000    Instr : 000 HALT               In  F: 00 - 00000000
+6	80: 000 000 000 000 000 000 000 000
+7	88: 000 000 000 000 000 000 000 000     DATA MEMORY                    I/O OUTPUTS
+8	90: 000 000 000 000 000 000 000 000    00: 00 00 00 00 00 00 00 00    Out 0: 00 - 00000000
+9	98: 000 000 000 000 000 000 000 000    08: 00 00 00 00 00 00 00 00    Out 1: 00 - 00000000
+0	a0: 000 000 000 000 000 000 000 000    10: 00 00 00 00 00 00 00 00    Out 2: 00 - 00000000
+1	a8: 000 000 000 000 000 000 000 000    18: 00 00 00 00 00 00 00 00    Out 3: 00 - 00000000
+2	b0: 000 000 000 000 000 000 000 000    20: 00 00 00 00 00 00 00 00    Out 4: 00 - 00000000
+3	b8: 000 000 000 000 000 000 000 000    28: 00 00 00 00 00 00 00 00    Out 5: 00 - 00000000
+4	c0: 000 000 000 000 000 000 000 000    30: 00 00 00 00 00 00 00 00    Out 6: 00 - 00000000
+5	c8: 000 000 000 000 000 000 000 000    38: 00 00 00 00 00 00 00 00    Out 7: 00 - 00000000
+6	d0: 000 000 000 000 000 000 000 000    40: 00 00 00 00 00 00 00 00    Out 8: 00 - 00000000
+7	d8: 000 000 000 000 000 000 000 000    48: 00 00 00 00 00 00 00 00    Out 9: 00 - 00000000
+8	e0: 000 000 000 000 000 000 000 000    50: 00 00 00 00 00 00 00 00    Out A: 00 - 00000000
+9	e8: 000 000 000 000 000 000 000 000    58: 00 00 00 00 00 00 00 00    Out B: 00 - 00000000
+0	f0: 000 000 000 000 000 000 000 000    60: 00 00 00 00 00 00 00 00    Out C: 00 - 00000000
+1	f8: 000 000 000 000 000 000 000 000    68: 00 00 00 00 00 00 00 00    Out D: 00 - 00000000
+2	                                       70: 00 00 00 00 00 00 00 00    Out E: 00 - 00000000
+3	                                       78: 00 00 00 00 00 00 00 00    Out F: 00 - 00000000
 
 
 */
@@ -129,7 +137,7 @@ type CPU struct {
 	flagc   bool
 	in      [16]uint
 	out     [16]uint
-	cycles  uint
+	cycles  uint64
 	running bool
 }
 
@@ -146,7 +154,9 @@ const (
 	JL = 7
 )
 
-var cpu CPU
+var cpu, holdCpu CPU
+
+var logChannel chan string
 
 //
 //
@@ -282,6 +292,7 @@ func disassemble(opcode uint) string {
 //
 func redrawCpu() {
 	var txt string
+	var color termbox.Attribute
 
 	// Code memory
 	printXY(0, 0, termbox.ColorBlack|termbox.AttrReverse, termbox.ColorDefault, " PROGRAM MEMORY                    ")
@@ -300,20 +311,53 @@ func redrawCpu() {
 	// Registers
 	printXY(39, 0, termbox.ColorBlack|termbox.AttrReverse, termbox.ColorDefault, " REGISTERS       ")
 	for i := 0; i < 8; i++ {
-		txt = fmt.Sprintf("%2s: %02x - %08b", regnames[i], cpu.regs[i], cpu.regs[i])
+		txt = fmt.Sprintf("%2s: ", regnames[i])
 		printXY(39, 1+i, termbox.ColorBlack, termbox.ColorDefault, txt)
+		txt = fmt.Sprintf("%02x - %08b", cpu.regs[i], cpu.regs[i])
+		color = termbox.ColorBlack
+		if cpu.regs[i] != holdCpu.regs[i] {
+			color = termbox.ColorRed
+		}
+		printXY(39, 1+i, color, termbox.ColorDefault, txt)
+
 	}
 
 	// Internal registers
 	printXY(39, 10, termbox.ColorBlack|termbox.AttrReverse, termbox.ColorDefault, " CPU INTERNAL ")
-	txt = fmt.Sprintf("PC    : %04x", cpu.pc)
+
+	txt = fmt.Sprintf("PC    : ")
 	printXY(39, 11, termbox.ColorBlack, termbox.ColorDefault, txt)
-	txt = fmt.Sprintf("PChold: %04x", cpu.pchold)
+	txt = fmt.Sprintf("%04x", cpu.pc)
+	color = termbox.ColorBlack
+	printXY(39+8, 11, color, termbox.ColorDefault, txt)
+
+	txt = fmt.Sprintf("PChold: ")
 	printXY(39, 12, termbox.ColorBlack, termbox.ColorDefault, txt)
-	txt = fmt.Sprintf("Flag C: %t", cpu.flagc)
+	txt = fmt.Sprintf("%04x", cpu.pchold)
+	color = termbox.ColorBlack
+	if cpu.pchold != holdCpu.pchold {
+		color = termbox.ColorRed
+	}
+	printXY(39+8, 12, color, termbox.ColorDefault, txt)
+
+	txt = fmt.Sprintf("Flag C: ")
 	printXY(39, 13, termbox.ColorBlack, termbox.ColorDefault, txt)
-	txt = fmt.Sprintf("Flag Z: %t", cpu.flagz)
+	txt = fmt.Sprintf("%t", cpu.flagc)
+	color = termbox.ColorBlack
+	if cpu.flagc != holdCpu.flagc {
+		color = termbox.ColorRed
+	}
+	printXY(39+8, 13, color, termbox.ColorDefault, txt)
+
+	txt = fmt.Sprintf("Flag Z: ")
 	printXY(39, 14, termbox.ColorBlack, termbox.ColorDefault, txt)
+	txt = fmt.Sprintf("%t", cpu.flagz)
+	color = termbox.ColorBlack
+	if cpu.flagz != holdCpu.flagz {
+		color = termbox.ColorRed
+	}
+	printXY(39+8, 14, color, termbox.ColorDefault, txt)
+
 	txt = fmt.Sprintf("Cycles: %d", cpu.cycles)
 	printXY(39, 15, termbox.ColorBlack, termbox.ColorDefault, txt)
 	// Current instruction
@@ -323,17 +367,33 @@ func redrawCpu() {
 	// I/O In values
 	printXY(70, 0, termbox.ColorBlack|termbox.AttrReverse, termbox.ColorDefault, " I/O INPUTS         ")
 	for i := 0; i < 16; i++ {
-		txt = fmt.Sprintf("In  %X: %02x - %08b", i, cpu.in[i], cpu.in[i])
+		txt = fmt.Sprintf("In  %X: ", i)
 		printXY(70, 1+i, termbox.ColorBlack, termbox.ColorDefault, txt)
+		txt = fmt.Sprintf("%02x - %08b", cpu.in[i], cpu.in[i])
+		color = termbox.ColorBlack
+		if cpu.in[i] != holdCpu.in[i] {
+			color = termbox.ColorRed
+		}
+		printXY(70+7, 1+i, color, termbox.ColorDefault, txt)
 	}
 
 	// I/O Out values
 	printXY(70, 18, termbox.ColorBlack|termbox.AttrReverse, termbox.ColorDefault, " I/O OUTPUTS        ")
 	for i := 0; i < 16; i++ {
-		txt = fmt.Sprintf("Out %X: %02x - %08b", i, cpu.out[i], cpu.out[i])
+		txt = fmt.Sprintf("Out %X: ", i)
 		printXY(70, 3+16+i, termbox.ColorBlack, termbox.ColorDefault, txt)
+		txt = fmt.Sprintf("%02x - %08b", cpu.out[i], cpu.out[i])
+		color = termbox.ColorBlack
+		if cpu.out[i] != holdCpu.out[i] {
+			color = termbox.ColorRed
+		}
+		printXY(70+7, 3+16+i, color, termbox.ColorDefault, txt)
 	}
 
+	// Send updates in local buffer to the screen
+	termbox.Flush()
+	// Update changes to holding cpu
+	holdCpu = cpu
 }
 
 //
@@ -341,17 +401,12 @@ func redrawCpu() {
 //
 func initCpu() {
 	rand.Seed(time.Now().UTC().UnixNano())
+
 	for i := 0; i < len(cpu.code); i++ {
-		opname := ""
-		var opcode uint = 0
-		for opname == "" {
-			opcode = uint(rand.Uint32() & 0x7FF)
-			opname = findOpcode(opcode)
-		}
-		cpu.code[i] = opcode
+		cpu.code[i] = 0x00
 	}
 	for i := 0; i < len(cpu.data); i++ {
-		cpu.data[i] = uint(rand.Uint32() & 0xFF)
+		cpu.data[i] = 0x00
 	}
 	for i := 0; i < len(cpu.regs); i++ {
 		cpu.regs[i] = 0x00
@@ -368,6 +423,8 @@ func initCpu() {
 	cpu.flagz = true
 	cpu.cycles = 0
 	cpu.running = false
+
+	holdCpu = cpu
 }
 
 //
@@ -391,118 +448,226 @@ func executeOneOp() {
 	_, p2 := getParam(opcode, opcodes[opname].arg2, opcodes[opname].arg2pos)
 
 	switch opname {
+
 	case "HALT":
 		cpu.running = false
+
 	case "NOP":
+		// Do nothing
+
 	case "SJMP":
 		updatePcOffset(p1)
+
 	case "BRAZ":
 		if cpu.flagz {
 			updatePcOffset(p1)
 		}
+
 	case "BRANZ":
 		if !cpu.flagz {
 			updatePcOffset(p1)
 		}
+
 	case "BRAC":
 		if cpu.flagc {
 			updatePcOffset(p1)
 		}
+
 	case "BRANC":
 		if !cpu.flagc {
 			updatePcOffset(p1)
 		}
+
 	case "LDAI":
 		cpu.regs[A] = p1
+		cpu.flagz = cpu.regs[A] == 0
+
 	case "LDAZP":
 		cpu.regs[A] = cpu.data[p1]
+		cpu.flagz = cpu.regs[A] == 0
+
 	case "STAZP":
 		cpu.data[p1] = cpu.regs[A]
+
 	case "CLR":
 		cpu.regs[p1] = 0x00
+		cpu.flagz = true
+
 	case "SETFF":
 		cpu.regs[p1] = 0xFF
+		cpu.flagz = false
+
 	case "NOT":
 		cpu.regs[p1] ^= 0xFF
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "OR":
 		cpu.regs[p1] |= cpu.regs[A]
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "AND":
 		cpu.regs[p1] &= cpu.regs[A]
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "XOR":
 		cpu.regs[p1] ^= cpu.regs[A]
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "INC":
 		cpu.regs[p1] = (cpu.regs[p1] + 1) & 0xFF
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "DEC":
 		cpu.regs[p1] = (cpu.regs[p1] - 1) & 0xFF
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "ADD":
-		cpu.regs[p1] = (cpu.regs[p1] + cpu.regs[A]) & 0xFF
+		cpu.regs[p1] = cpu.regs[p1] + cpu.regs[A]
+		if cpu.regs[p1] > 255 {
+			cpu.regs[p1] -= 256
+			cpu.flagc = true
+		} else {
+			cpu.flagc = false
+		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "SUB":
-		cpu.regs[p1] = (cpu.regs[p1] - cpu.regs[A]) & 0xFF
+		cpu.regs[p1] = cpu.regs[p1] - cpu.regs[A]
+		if cpu.regs[p1] < 0 {
+			cpu.regs[p1] += 256
+			cpu.flagc = true
+		} else {
+			cpu.flagc = false
+		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "ADDC":
 		if cpu.flagc {
-			cpu.regs[p1] = (cpu.regs[p1] + cpu.regs[A] + 1) & 0xFF
+			cpu.regs[p1] = cpu.regs[p1] + cpu.regs[A] + 1
 		} else {
-			cpu.regs[p1] = (cpu.regs[p1] + cpu.regs[A]) & 0xFF
+			cpu.regs[p1] = cpu.regs[p1] + cpu.regs[A]
 		}
+		if cpu.regs[p1] > 255 {
+			cpu.regs[p1] -= 256
+			cpu.flagc = true
+		} else {
+			cpu.flagc = false
+		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "SUBC":
 		if cpu.flagc {
-			cpu.regs[p1] = (cpu.regs[p1] - cpu.regs[A] - 1) & 0xFF
+			cpu.regs[p1] = cpu.regs[p1] - cpu.regs[A] - 1
 		} else {
-			cpu.regs[p1] = (cpu.regs[p1] - cpu.regs[A]) & 0xFF
+			cpu.regs[p1] = cpu.regs[p1] - cpu.regs[A]
 		}
+		if cpu.regs[p1] < 0 {
+			cpu.regs[p1] += 256
+			cpu.flagc = true
+		} else {
+			cpu.flagc = false
+		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "LSHIFT":
 		cpu.regs[p1] = (cpu.regs[p1] * 2) & 0xFE
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "RSHIFT":
 		cpu.regs[p1] = (cpu.regs[p1] / 2) & 0xEF
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "LSHIFTC":
 		cpu.regs[p1] = (cpu.regs[p1] * 2) & 0xFE
 		if cpu.flagc {
 			cpu.regs[p1] |= 0x01
 		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "RSHIFTC":
 		cpu.regs[p1] = (cpu.regs[p1] / 2) & 0xEF
 		if cpu.flagc {
 			cpu.regs[p1] |= 0x80
 		}
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "MOVE":
 		cpu.regs[p2] = cpu.regs[p1]
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "TEST":
 		if (cpu.regs[p2] & (1 << cpu.regs[p1])) == (1 << cpu.regs[p1]) {
 			cpu.flagz = false
 		} else {
 			cpu.flagz = true
 		}
+
 	case "PEEK":
 		cpu.regs[A] = cpu.in[p1]
+		cpu.flagz = cpu.regs[A] == 0
+
 	case "POKE":
 		cpu.out[p1] = cpu.regs[A]
+
 	case "LDAXY":
 		cpu.regs[A] = cpu.data[cpu.regs[Y]<<8+cpu.regs[X]]
+		cpu.flagz = cpu.regs[A] == 0
+
 	case "STAXY":
 		cpu.data[cpu.regs[Y]<<8+cpu.regs[X]] = cpu.regs[A]
+
 	case "JUMP":
 		cpu.pc = cpu.regs[JH]<<8 + cpu.regs[JL] - 1
+
 	case "CALL":
 		cpu.pchold = cpu.pc
 		cpu.pc = cpu.regs[JH]<<8 + cpu.regs[JL]
+
 	case "RET":
 		cpu.pc = cpu.pchold
+
 	case "CLRC":
 		cpu.flagc = false
+
 	case "SETC":
 		cpu.flagc = true
+
 	case "LDPML":
 		cpu.regs[A] = (cpu.code[cpu.regs[Y]<<8+cpu.code[X]]) & 0xFF
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "LDPMH":
 		cpu.regs[A] = (cpu.code[cpu.regs[Y]<<8+cpu.code[X]]) >> 8
+		cpu.flagz = cpu.regs[p1] == 0
+
 	case "STPML":
 		cpu.code[cpu.regs[Y]<<8+cpu.code[X]] &= 0x700
 		cpu.code[cpu.regs[Y]<<8+cpu.code[X]] |= cpu.regs[A]
+
 	case "STPMH":
 		cpu.code[cpu.regs[Y]<<8+cpu.code[X]] &= 0x0FF
 		cpu.code[cpu.regs[Y]<<8+cpu.code[X]] |= ((cpu.regs[A] & 0x07) << 8)
 	}
 	cpu.pc++
+	cpu.cycles++
+}
+
+//
+// Receive log messages over the channel and blast them out
+// to UDP port 1234 using a fixed source address so it's
+// possible to receive the messages with netcat
+//
+func udpLog(theChannel chan string) {
+	serverAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:1234")
+	localAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:1235")
+	socket, _ := net.DialUDP("udp", localAddr, serverAddr)
+
+	for {
+		msg := <-theChannel
+		t := time.Time(time.Now()).Format(time.StampMilli)
+		msg = fmt.Sprintf("%s: %s\n", t, msg)
+		_, _ = socket.Write([]byte(msg))
+	}
 }
 
 //
@@ -510,8 +675,8 @@ func executeOneOp() {
 // consumption in the main loop
 //
 func tcpConn(theChannel chan uint, conn net.Conn) {
-	// Turn on character-by-character mode at the client,
-	// and turn off echo as well
+	// Begin with turning on thecharacter-by-character mode at the
+	// client and turn off echo as well
 	conn.Write([]byte("\377\373\003\n"))    // send IAC WILL SUPPRESS-GOAHEAD
 	conn.Write([]byte("\377\375\003\n"))    // send IAC DO SUPPRESS-GO-AHEAD
 	conn.Write([]byte("\377\373\001\n"))    // send IAC WILL SUPPRESS-ECHO
@@ -557,10 +722,94 @@ func keyboardPoller(c chan termbox.Event) {
 	}
 }
 
+func loadHex(filename string) {
+	// Load entire file in one go
+	content, err := ioutil.ReadFile(filename)
+	if err != nil {
+		logChannel <- fmt.Sprintf("Can't open file %s", filename)
+		return
+	}
+	// Split it up to separate lines
+	lines := strings.Split(string(content), "\n")
+	logChannel <- fmt.Sprintf("Loaded %d lines from %s", len(lines), filename)
+
+	// If we got this far then clear out the CPU to be ready to accept new info
+	initCpu()
+	// Scan line by line
+	for i := 0; i < len(lines); i++ {
+		// Don't bother with lines that is shorter than 8 characters and
+		// doesn't have a : as the fifth character
+		if len(lines[i]) >= 8 {
+			if string(lines[i][4]) == ":" {
+				// Parse the two fields (address/data) and store it into the cpu
+				ad64, err := strconv.ParseUint(lines[i][0:4], 16, 64)
+				ad := uint(ad64)
+				if err != nil || ad > uint(len(cpu.code)) {
+					logChannel <- fmt.Sprintf("Invalid address at line %d [%s]", i, lines[i])
+					return
+				}
+				da64, err := strconv.ParseUint(lines[i][5:8], 16, 64)
+				da := uint(da64)
+				if err != nil || da > 2047 {
+					logChannel <- fmt.Sprintf("Invalid data at line %d [%s]", i, lines[i])
+					return
+				}
+				logChannel <- fmt.Sprintf("Seting cpu.code[%d]=%d", ad, da)
+				cpu.code[ad] = da
+			}
+		}
+	}
+	// All done here, refresh the screen
+	redrawCpu()
+}
+
+//
+//
+//
+func handleRx(rxData uint) {
+	cpu.in[15] = rxData
+	redrawCpu()
+}
+
+//
+//
+//
+func handleKeyboard(ev termbox.Event) bool {
+	switch ev.Type {
+	case termbox.EventKey:
+		if string(ev.Ch) == "s" {
+			executeOneOp()
+			redrawCpu()
+		}
+		if string(ev.Ch) == "b" {
+			logChannel <- "Run stopped"
+			cpu.running = false
+			redrawCpu()
+		}
+		if string(ev.Ch) == "l" {
+			loadHex("load1.hex")
+		}
+		if string(ev.Ch) == "r" {
+			logChannel <- "Run started"
+			cpu.running = true
+		}
+		if ev.Key == termbox.KeyCtrlC {
+			return true
+		}
+	}
+
+	return false
+}
+
 //
 //
 //
 func main() {
+	// Create UDP logger
+	logChannel = make(chan string)
+	go udpLog(logChannel)
+	logChannel <- "AYTABTU started"
+
 	// Start listening on TCP for UART simulator
 	uartChannel := make(chan uint)
 	go tcpListener(uartChannel)
@@ -590,30 +839,30 @@ func main() {
 	redrawCpu()
 	termbox.Flush()
 	exit := false
-	for !exit {
-		select {
-		case rxData := <-uartChannel:
-			cpu.in[15] = rxData
-			redrawCpu()
-			termbox.Flush()
-		case ev := <-keyboardChannel:
-			switch ev.Type {
-			case termbox.EventKey:
-				if string(ev.Ch) == "s" {
-					executeOneOp()
-					redrawCpu()
-					termbox.Flush()
-				}
-				if ev.Key == termbox.KeyCtrlC {
-					exit = true
-				}
-				if ev.Key == termbox.KeyEnter {
-					initCpu()
-					redrawCpu()
-					termbox.Flush()
-				}
-			}
 
+	refreshTicker := time.NewTicker(time.Millisecond * 100)
+
+	for !exit {
+		if cpu.running {
+			select {
+			case <-refreshTicker.C:
+				redrawCpu()
+			case rxData := <-uartChannel:
+				handleRx(rxData)
+			case ev := <-keyboardChannel:
+				exit = handleKeyboard(ev)
+			default:
+				executeOneOp()
+			}
+		} else {
+			select {
+			case <-refreshTicker.C:
+				// In halted mode nothing needs to be done
+			case rxData := <-uartChannel:
+				handleRx(rxData)
+			case ev := <-keyboardChannel:
+				exit = handleKeyboard(ev)
+			}
 		}
 	}
 

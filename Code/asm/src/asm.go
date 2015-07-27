@@ -274,7 +274,7 @@ func showSymbolTable() {
 //
 //
 //
-func processFile(f *os.File) {
+func processFile(f *os.File, fOut *os.File) {
 	fmt.Printf("Processing pass %d\n", pass)
 	pc = 0
 	lineNo = 0
@@ -332,6 +332,20 @@ func processFile(f *os.File) {
 		// Check for different requred types of the first argument, retreive the argument value
 		// and merge it into the opcode base value
 
+		if opcodes[tokens[tp]].arg1 == P_of6 {
+			loc, _ := convertValue(tokens[tp+1], 0, 255)
+			if pass == 2 {
+				ofs := loc - pc
+				fmt.Printf("Offset is %d\n", ofs)
+				if ofs < 0 {
+					ofs = 63 + ofs
+				}
+				fmt.Printf("Offset is %d\n", ofs)
+				//uofs := uint(ofs)
+				op |= (ofs << uint(opcodes[tokens[tp]].arg1pos))
+			}
+		}
+
 		if opcodes[tokens[tp]].arg1 == P_va8 {
 			arg1val, _ := convertValue(tokens[tp+1], 0, 255)
 			op |= (arg1val << uint(opcodes[tokens[tp]].arg1pos))
@@ -379,7 +393,9 @@ func processFile(f *os.File) {
 		}
 
 		if pass == 2 {
-			fmt.Printf("%04x: $%03x %%%011b   %s \n", pc, op, op, lineSource)
+			fmt.Printf("%04x : $%03x %%%011b   %s \n", pc, op, op, lineSource)
+			s := fmt.Sprintf("%04x:%03x   %s \n", pc, op, lineSource)
+			fOut.WriteString(s)
 		}
 
 		pc++
@@ -391,16 +407,26 @@ func processFile(f *os.File) {
 //
 //
 func main() {
-	f, err := os.Open("test.asm")
+	infile := os.Args[1]
+	fileparts := strings.Split(infile, ".")
+	outfile := fileparts[0] + ".hex"
+
+	fIn, err := os.Open(infile)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer f.Close()
+	defer fIn.Close()
+
+	fOut, err := os.Create(outfile)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer fOut.Close()
 
 	pass = 1
-	processFile(f)
+	processFile(fIn, nil)
 	pass = 2
-	processFile(f)
+	processFile(fIn, fOut)
 
 	showSymbolTable()
 
