@@ -1,12 +1,14 @@
-0000:500   	CLR	A 
-0001:501   	CLR	B 
+0000:500   	CLR	A 	`				// Zero out the registers we'll work with since  
+0001:501   	CLR	B 					// the CPU reset in real life doesn't do that for us 
 0002:502   	CLR	C 
 0003:503   	CLR	D 
 0004:530   	INC	A 
 0005:17e   	BRANZ	LOOP 
 0006:531   	INC	B 
 0007:17c   	BRANZ	LOOP 
-0008:532   	INC	C 
-0009:17a   	BRANZ	LOOP 
-000a:533   	INC	D 
-000b:0f8   	SJMP	LOOP 
+0008:240   	LDAI	64				// Every 256*256 LOOPs send a @ character to the UART 
+0009:61f   	POKE	UART 
+000a:532   	INC	C 
+000b:178   	BRANZ	LOOP 
+000c:533   	INC	D 
+000d:0f6   	SJMP	LOOP 

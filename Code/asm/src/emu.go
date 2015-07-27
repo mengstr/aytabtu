@@ -56,9 +56,11 @@ import (
 */
 
 const (
-	CONN_HOST = "localhost"
-	CONN_PORT = "8080"
-	CONN_TYPE = "tcp"
+	uartPort   = "1420"
+	uartType   = "tcp"
+	logType    = "udp"
+	logPort    = "1421"
+	logSrcPort = "1422" // Must have fixed source to please netcat
 )
 
 const (
@@ -127,6 +129,25 @@ var opcodes = map[string]opcode{
 const screenMinWidth = 92
 const screenMinHeight = 32
 
+// Mappings for register Names and Numbers
+var regnames = []string{"A", "B", "C", "D", "X", "Y", "JH", "JL"}
+
+const (
+	A  = 0
+	B  = 1
+	C  = 2
+	D  = 3
+	X  = 4
+	Y  = 5
+	JH = 6
+	JL = 7
+)
+
+// Enumerate I/O port special functions
+const (
+	IO_UART = 15
+)
+
 type CPU struct {
 	code    [256]uint
 	data    [256]uint
@@ -141,22 +162,10 @@ type CPU struct {
 	running bool
 }
 
-var regnames = []string{"A", "B", "C", "D", "X", "Y", "JH", "JL"}
-
-const (
-	A  = 0
-	B  = 1
-	C  = 2
-	D  = 3
-	X  = 4
-	Y  = 5
-	JH = 6
-	JL = 7
-)
-
 var cpu, holdCpu CPU
 
-var logChannel chan string
+var logChannel chan string // Channel used for sending log entries over UDP
+var uartChannel chan uint  // Channel used for simulation an UART at PORT 15
 
 //
 //
@@ -608,6 +617,9 @@ func executeOneOp() {
 
 	case "POKE":
 		cpu.out[p1] = cpu.regs[A]
+		if p1 == IO_UART {
+			uartChannel <- cpu.regs[A]
+		}
 
 	case "LDAXY":
 		cpu.regs[A] = cpu.data[cpu.regs[Y]<<8+cpu.regs[X]]
@@ -658,8 +670,8 @@ func executeOneOp() {
 // possible to receive the messages with netcat
 //
 func udpLog(theChannel chan string) {
-	serverAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:1234")
-	localAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:1235")
+	serverAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:"+logPort)
+	localAddr, _ := net.ResolveUDPAddr("udp", "127.0.0.1:"+logSrcPort)
 	socket, _ := net.DialUDP("udp", localAddr, serverAddr)
 
 	for {
@@ -674,7 +686,7 @@ func udpLog(theChannel chan string) {
 // Read incomming data from the tcp connection and send them to the channel for
 // consumption in the main loop
 //
-func tcpConn(theChannel chan uint, conn net.Conn) {
+func uartRxComms(theChannel chan uint, conn net.Conn) {
 	// Begin with turning on thecharacter-by-character mode at the
 	// client and turn off echo as well
 	conn.Write([]byte("\377\373\003\n"))    // send IAC WILL SUPPRESS-GOAHEAD
@@ -683,32 +695,47 @@ func tcpConn(theChannel chan uint, conn net.Conn) {
 	conn.Write([]byte("\377\375\001\n"))    // send IAC DO SUPPRESS-ECHO
 	conn.Write([]byte("AYTABTU ready\r\n")) // Tell telnet user that we're good to go
 
+	buf := make([]byte, 16)
 	for {
-		buf := make([]byte, 16)
 		_, _ = conn.Read(buf)
 		theChannel <- uint(buf[0])
 	}
 }
 
 //
+// Listen for messages on the usart channel and send them over the socket to
+// be shown in the terminal
+//
+func uartTxComms(theChannel chan uint, conn net.Conn) {
+	var buf = []byte{0}
+	for {
+		v := <-theChannel
+		buf[0] = byte(v)
+		_, _ = conn.Write([]byte(buf))
+	}
+}
+
 //
 //
-func tcpListener(theChannel chan uint) {
+//
+func uartListener(theChannel chan uint) {
 	// Start listeng on TCP port
-	tcp, err := net.Listen(CONN_TYPE, CONN_HOST+":"+CONN_PORT)
+	tcp, err := net.Listen(uartType, "127.0.0.1:"+uartPort)
 	if err != nil {
 		fmt.Println("Error listening on port:", err.Error())
 		os.Exit(1)
 	}
 	defer tcp.Close()
+
 	for {
 		tcpconn, err := tcp.Accept()
 		if err != nil {
 			fmt.Println("Error accepting connection: ", err.Error())
 			os.Exit(1)
 		}
-		// Handle connections in a new goroutine.
-		go tcpConn(theChannel, tcpconn)
+		// Handle rx/tx comms in two new goroutines.
+		go uartRxComms(theChannel, tcpconn)
+		go uartTxComms(theChannel, tcpconn)
 	}
 }
 
@@ -811,8 +838,8 @@ func main() {
 	logChannel <- "AYTABTU started"
 
 	// Start listening on TCP for UART simulator
-	uartChannel := make(chan uint)
-	go tcpListener(uartChannel)
+	uartChannel = make(chan uint)
+	go uartListener(uartChannel)
 
 	// Initialize termbox library
 	err := termbox.Init()
