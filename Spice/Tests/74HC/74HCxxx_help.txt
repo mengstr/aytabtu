@@ -1,0 +1,205 @@
+V1.01
+A Digital Parts Library For The 74HCxxx Devices.
+-----------------------------------------------
+
+This new library should you help you using real world standard digital
+parts in LTSPICE. The library can be extended easily by other parts
+of this family and it can be also adapted to other logic families like
+74HCT,AC,ACT,LVT and so on. More than forty parts are already included
+and the library will grow.
+
+All the files are in the Yahho group's file section.
+   Files->Lib->Digital 74HCxxx
+I have added a folder "others" in this directory nad I would be happy
+if other people contribute models there. I will then include them into
+the "big" library.
+
+ Helmut Sennewald
+
+
+The A Devices
+-------------
+LTSPICE contains already A devices for logic simulations.
+A description about these devices can be found in the help pages.
+  Help->LTSPICE->Circuit Elements A special functions
+Syntax:
+  Annn n001 n002 n003 n001 n004 n005 n006 n007 n008 <model> [parameters]
+The node n008 is the reference level of the A device and it is assumed to be 
+0 if no net is connected. 
+You can specify the low and high level of such an A device, but there is no
+connection for a supply voltage.
+Be aware that any pin of an A device connected to 0(ground) is treated like
+nothing is connected. If you want 0V on an A device, you need
+a net with value 0V which is not node 0.
+
+The New 74HC Devices
+--------------------
+The intention was to implement a library for real digital devices like the 
+74HCxx series. These new library parts will offer additional features compared
+to the A devices.
+
+  * Floating supply voltage, therefore parts are split into input section,
+    logical core and output section.
+  * Two sets of symbols, standard and IEC symbols
+  * Parameter passing on device basis
+  * Delay modifier as an instance parameter
+  * Supply voltage dependant delay and other characteristics
+
+
+  All models have been divided into three sections.
+  
+  >--| INPUT-Translator |----| 1V-LOGIC A devices |----| OUTPUT Driver |-->
+
+The input level converter is one central subcircuit for a device family
+as well as the output drivers are only a few different types like normal 
+drive, buffer and tristate driver. They are made with E , B.sources and 
+the SW switch SPICE component.
+
+The input and ouput sections don't use clamp diodes at the moment, because
+this makes the simulation slower. If you have a need for that, just enable
+the lines with the diodes in the input and output section of the 74HC.LIB 
+file. Therefore you have to remove the * at the beginning of all these lines 
+in the subcircuits of the receivers and drivers.
+*D1 0   in  DIO1   -> D1 0   in  DIO1
+*D2 in VCC  DIO1   -> D2 in VCC  DIO1 
+*D1 0   out  DIO2  -> D1 0   out  DIO2
+*D2 out VCC  DIO2  -> D2 out VCC  DIO2
+This small, but in some cases necessary feature, can increase the simulation 
+time up to 70%.
+
+Installation
+------------
+Copy/extract the file 74hc.zip into the LTSPICE directory "...\sym\Digital".
+It creates automatically a new folder 74hc. 
+Copy the file "74hc.lib" into the LTSPICE directory "...\sub". That's it.
+Every schematic using thes parts must then have a command line 
+.INCLUDE 74hc.lib.
+
+If you want to use the waveform formatter part, then copy "dview10.asy" and
+"dview5.asy" into the directory "...\sym\Digital". The corresponding library 
+file "dview.lib" should be copied to the LTSPICE directory "...\sub".
+The necessary command line in the schematic will be .INCLUDE dview.lib. 
+
+
+An Example Circuit
+------------------
+Let's take a look to an example of an 74HC08 AND gate.
+  First add the command line .INCLUDE 74HC.LIB to your schematic.
+  This modelfile 74HC.LIB can be placed either in the working directoty 
+  or in the LTSPICE directory C:\Programme\Ltc\SwCADIII\lib\sub.
+
+  Now place the 74HC08 on your schematic.
+
+  Right click on the instance to set the VCC and GND net names according
+  to your supply voltage net names. The already set default is the name 
+  VCC for the positive supply voltage and net 0 for ground. If you have a 
+  net +5V instead, then change VCC to +5V. Do the same with net name 0 
+  for your circuit ground. 
+
+  Right click again to set some parameter values.
+  The HC-family devices have a supply voltage dependant charcteristic.
+  The parameter VCC=5 tells the model this value, here 5V. 
+  The simulated characteristic is according to the typical parameters at
+  25 degree from the data sheet. If you want more maximum delay,
+  then set the factor SPEED=1 to a higher level, e.g. SPEED=2.0.
+  If you set it to 0.5, then you have nearly the speed of ACMOS devices.
+
+  Don't forget to place a DC source supplying the VCC net on your schematic.
+
+  That's all what is specific to the new library.
+
+  There are two special parts for better waveform viewing in the dview.lib
+  file. These are used with the symbols dview5.asy and dview10.asy. They
+  add an offset and gain to each signal so that the signals are sperated
+  vertically on the output window.
+ 
+
+
+There is an example (example.asc) file  with some of the new parts in the 
+YAHOO group's folder Files->Lib->sch->Digital 74HCxxx .
+Best you try first this example. If it runs, then your environment has
+been setup correctly.
+
+
+Simualation of digital devices in (LT)SPICE can become very time consuming. 
+A fast PC is very important here.
+
+
+
+The Subcircuit Definition in the Symbol Editor
+----------------------------------------------
+
+Right click with the mouse on the symbol to see the properties.
+ 
+   SpiceModel   VCC 0                    
+   SpecLine     VCC=5  SPEED=1 TRIPDTV=1e-9     
+ 
+What it means:
+   VCC 0      +supply NET is VCC, default -supply NET is 0(GND)
+   VCC=5      5V supply voltage, used to calculate delays
+   SPEED=1    Delay multiplier of 1
+   TRIPDTV=1e-9  LTSPICE internal timestep for A elements
+
+BY THE WAY; this "SpiceModel" line uses a nice trick to add two pins(nodes)
+to a part without using the "Add PIN" in the symbol editor. This the only
+chance to have supply nets as "parameters" in the schematic instances.
+
+
+
+The Subcircuit Definition in the netlist
+----------------------------------------
+               U20
+               ___
+   a----------| & |______y
+   b----------|___| 
+              74HC08
+
+The netlist:
+XU20  a b  y  VCC 0 74HC00 VCC=5 SPEED=1.0 TRIPDT=1e-9
+ |    | |  |   |  |  |       |     |         |
+ 1    2 3  4   5  6  7       8     9        10 
+
+1 The subcircuit instance name
+2 Net name of one input 
+3 Net name of one input
+4 Net name of output y
+5 Net name of the supply voltage VCC, can be any other net name
+6 Net name of the ground of the 74HC08, here 0 but can be on any net
+7 The model name 74HC08
+8 Value of the supply voltage, used to calculate voltage dependant parameters
+9 Delay multiplier, the normal delay is multiplie by this factor
+10 TRIPDT is a simulation time step parameter for any A device, let it 1e-9
+
+
+
+
+One user reported a convergence problem with a CD4049 oscillator circuit.
+This problem could be solved in different ways. 
+
+Chance 1:
+Use the alternate solver:
+Control Panel->SPICE Solver-Alternate
+
+Chance 2:
+Reduce the value Gmin in the SPICE control panel:
+Control Panel->SPICE Gmin 1e-11
+
+Chance 3:
+Use the .TRAN ..... startup command instead of .TRAN ... .
+It hasn't helped in this case, but in some other cases.
+
+
+
+
+
+
+
+
+ 
+  
+
+
+
+  
+
+

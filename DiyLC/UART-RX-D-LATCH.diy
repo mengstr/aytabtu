@@ -12432,11 +12432,11 @@
             <null/>
           </entry>
           <entry>
-            <awt-text-attribute>superscript</awt-text-attribute>
-            <null/>
+            <awt-text-attribute>family</awt-text-attribute>
+            <string>Tahoma</string>
           </entry>
           <entry>
-            <awt-text-attribute>tracking</awt-text-attribute>
+            <awt-text-attribute>width</awt-text-attribute>
             <null/>
           </entry>
           <entry>
@@ -12444,19 +12444,19 @@
             <null/>
           </entry>
           <entry>
+            <awt-text-attribute>tracking</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
+            <awt-text-attribute>weight</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
             <awt-text-attribute>size</awt-text-attribute>
             <float>14.0</float>
           </entry>
           <entry>
-            <awt-text-attribute>width</awt-text-attribute>
-            <null/>
-          </entry>
-          <entry>
-            <awt-text-attribute>family</awt-text-attribute>
-            <string>Tahoma</string>
-          </entry>
-          <entry>
-            <awt-text-attribute>weight</awt-text-attribute>
+            <awt-text-attribute>superscript</awt-text-attribute>
             <null/>
           </entry>
         </attributes>
@@ -12483,11 +12483,11 @@
             <null/>
           </entry>
           <entry>
-            <awt-text-attribute>superscript</awt-text-attribute>
-            <null/>
+            <awt-text-attribute>family</awt-text-attribute>
+            <string>Tahoma</string>
           </entry>
           <entry>
-            <awt-text-attribute>tracking</awt-text-attribute>
+            <awt-text-attribute>width</awt-text-attribute>
             <null/>
           </entry>
           <entry>
@@ -12495,19 +12495,19 @@
             <null/>
           </entry>
           <entry>
+            <awt-text-attribute>tracking</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
+            <awt-text-attribute>weight</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
             <awt-text-attribute>size</awt-text-attribute>
             <float>14.0</float>
           </entry>
           <entry>
-            <awt-text-attribute>width</awt-text-attribute>
-            <null/>
-          </entry>
-          <entry>
-            <awt-text-attribute>family</awt-text-attribute>
-            <string>Tahoma</string>
-          </entry>
-          <entry>
-            <awt-text-attribute>weight</awt-text-attribute>
+            <awt-text-attribute>superscript</awt-text-attribute>
             <null/>
           </entry>
         </attributes>
@@ -12534,11 +12534,11 @@
             <null/>
           </entry>
           <entry>
-            <awt-text-attribute>superscript</awt-text-attribute>
-            <null/>
+            <awt-text-attribute>family</awt-text-attribute>
+            <string>Tahoma</string>
           </entry>
           <entry>
-            <awt-text-attribute>tracking</awt-text-attribute>
+            <awt-text-attribute>width</awt-text-attribute>
             <null/>
           </entry>
           <entry>
@@ -12546,19 +12546,19 @@
             <null/>
           </entry>
           <entry>
+            <awt-text-attribute>tracking</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
+            <awt-text-attribute>weight</awt-text-attribute>
+            <null/>
+          </entry>
+          <entry>
             <awt-text-attribute>size</awt-text-attribute>
             <float>14.0</float>
           </entry>
           <entry>
-            <awt-text-attribute>width</awt-text-attribute>
-            <null/>
-          </entry>
-          <entry>
-            <awt-text-attribute>family</awt-text-attribute>
-            <string>Tahoma</string>
-          </entry>
-          <entry>
-            <awt-text-attribute>weight</awt-text-attribute>
+            <awt-text-attribute>superscript</awt-text-attribute>
             <null/>
           </entry>
         </attributes>

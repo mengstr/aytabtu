@@ -1,0 +1,18 @@
+Make a folder for your schematic(.asc) an save the schematic
+into this folder.
+
+Copy 74HC.lib into this folder.
+
+Unzip 74HC.zip on any place. Copy the symbols you need into the
+schematic folder.
+
+Place the symbols in your schematic from the schematic folder.
+Therefore change the symbol path to your schematic folder.
+Press F2, then "Top Directory:your_schematic_path".
+
+Place a SPICE-directive in your schematic.
+.include 74HC.lib
+
+Place a V-source with 5V on your schematic. Name it's net VCC.
+
+If you want a logical "0", use a V-source with 0V.
